@@ -1,6 +1,6 @@
+require("dotenv").config();
 const express = require("express");
 const axios = require("axios");
-const cheerio = require("cheerio");
 
 const app = express();
 const port = process.env.PORT || 8080;
@@ -10,29 +10,22 @@ app.get("/api/profile-pic", async (req, res) => {
   if (!username) return res.status(400).json({ error: "Missing username" });
 
   try {
-    const url = `https://www.instadp.io/full-size/${username}`;
-    const response = await axios.get(url, {
+    const response = await axios.get("https://instagram73.p.rapidapi.com/", {
+      params: { username },
       headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
-      }
+        "X-RapidAPI-Key": process.env.RAPIDAPI_KEY,
+        "X-RapidAPI-Host": "instagram73.p.rapidapi.com",
+      },
     });
 
-    const $ = cheerio.load(response.data);
-
-    const imageUrl = $('img.profile-picture').attr('src');
-
-    if (!imageUrl) {
-      return res.status(404).json({ error: "Profile picture not found" });
-    }
-
-    res.json({ profilePic: imageUrl });
+    const imageUrl = response.data.profile_picture_url_hd;
+    return res.json({ profilePic: imageUrl });
   } catch (err) {
-    console.error("Erro ao buscar imagem:", err.message);
-    return res.status(500).json({ error: "Erro ao buscar imagem do InstaDP" });
+    console.error("Erro RapidAPI:", err.message);
+    return res.status(500).json({ error: "Failed to fetch profile pic" });
   }
 });
 
-app.listen(port, () => {
-  console.log(`API running on port ${port}`);
-});
+app.listen(port, () =>
+  console.log(`API running on port ${port} — ✅ Instagram73 with RapidAPI`)
+);
