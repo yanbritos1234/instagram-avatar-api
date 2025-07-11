@@ -19,17 +19,28 @@ app.get("/api/profile-pic", async (req, res) => {
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
     );
 
-    await page.goto(`https://www.instagram.com/${username}`, {
-      waitUntil: "domcontentloaded", // networkidle2 pode travar se bloquear recurso
-      timeout: 15000
+    await page.goto(`https://www.instagram.com/${username}/`, {
+      waitUntil: "domcontentloaded",
+      timeout: 15000,
     });
 
-    // Seleciona a imagem com base no domínio CDN da Meta (scontent)
+    const pageContent = await page.content();
+
+    // Primeira tentativa: buscar via JSON embutido
+    const jsonMatch = pageContent.match(/<script type="application\/ld\+json">(.+?)<\/script>/);
+    if (jsonMatch && jsonMatch.length >= 2) {
+      const userData = JSON.parse(jsonMatch[1]);
+      if (userData && userData.image) {
+        await browser.close();
+        return res.json({ profilePic: userData.image });
+      }
+    }
+
+    // Segunda tentativa: buscar por imagem CDN
     await page.waitForSelector('img[src*="scontent"]', { timeout: 8000 });
     const imageUrl = await page.$eval('img[src*="scontent"]', img => img.src);
 
-    console.log("Imagem capturada:", imageUrl);
-
+    console.log("Imagem capturada via fallback:", imageUrl);
     await browser.close();
     return res.json({ profilePic: imageUrl });
 
