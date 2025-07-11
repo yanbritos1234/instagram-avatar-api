@@ -1,43 +1,39 @@
-import express from 'express';
-import puppeteer from 'puppeteer';
-import cors from 'cors';
+const express = require("express");
+const puppeteer = require("puppeteer");
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 8080;
 
-app.use(cors());
-
-app.get('/api/profile-pic', async (req, res) => {
-  const { username } = req.query;
-  if (!username) return res.status(400).json({ error: 'Username required' });
+app.get("/api/profile-pic", async (req, res) => {
+  const username = req.query.username;
+  if (!username) return res.status(400).json({ error: "Missing username" });
 
   try {
     const browser = await puppeteer.launch({
-      headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      headless: "new",
+      args: ["--no-sandbox", "--disable-setuid-sandbox"]
     });
 
     const page = await browser.newPage();
-    await page.goto(`https://www.instagram.com/${username}/`, {
-      waitUntil: 'domcontentloaded',
-      timeout: 30000
+    await page.setUserAgent(
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+    );
+
+    await page.goto(`https://www.instagram.com/${username}`, {
+      waitUntil: "networkidle2"
     });
 
-    const imageUrl = await page.evaluate(() => {
-      const meta = document.querySelector('meta[property="og:image"]');
-      return meta?.getAttribute('content');
-    });
+    // Espera carregar o avatar no header
+    await page.waitForSelector("header img", { timeout: 5000 });
+
+    const imageUrl = await page.$eval("header img", img => img.src);
 
     await browser.close();
 
-    if (!imageUrl) {
-      return res.status(404).json({ error: 'Profile picture not found' });
-    }
-
-    res.json({ profilePic: imageUrl });
-  } catch (error) {
-    console.error('[ERRO]', error.message);
-    res.status(500).json({ error: 'Failed to fetch profile picture' });
+    return res.json({ profilePic: imageUrl });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Profile picture not found" });
   }
 });
 
