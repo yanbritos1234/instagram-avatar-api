@@ -10,15 +10,15 @@ app.get("/api/profile-pic", async (req, res) => {
   if (!username) return res.status(400).json({ error: "Missing username" });
 
   try {
-    const response = await axios.get("https://instagram73.p.rapidapi.com/", {
+    const response = await axios.get("https://instagram-scraper-stable-api.p.rapidapi.com/search_user.php", {
       params: { username },
       headers: {
         "X-RapidAPI-Key": process.env.RAPIDAPI_KEY,
-        "X-RapidAPI-Host": "instagram73.p.rapidapi.com",
+        "X-RapidAPI-Host": "instagram-scraper-stable-api.p.rapidapi.com",
       },
     });
 
-    const imageUrl = response.data.profile_picture_url_hd;
+    const imageUrl = response.data.profile_pic_url_hd || response.data.profile_pic_url;
     return res.json({ profilePic: imageUrl });
   } catch (err) {
     console.error("Erro RapidAPI:", err.message);
@@ -26,6 +26,6 @@ app.get("/api/profile-pic", async (req, res) => {
   }
 });
 
-app.listen(port, () =>
-  console.log(`API running on port ${port} — ✅ Instagram73 with RapidAPI`)
-);
+app.listen(port, () => {
+  console.log(`API running on port ${port} — ✅ usando Scraper Stable`);
+});
