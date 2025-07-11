@@ -20,19 +20,21 @@ app.get("/api/profile-pic", async (req, res) => {
     );
 
     await page.goto(`https://www.instagram.com/${username}`, {
-      waitUntil: "networkidle2"
+      waitUntil: "domcontentloaded", // networkidle2 pode travar se bloquear recurso
+      timeout: 15000
     });
 
-    // Espera carregar o avatar no header
-    await page.waitForSelector("header img", { timeout: 5000 });
+    // Seleciona a imagem com base no domínio CDN da Meta (scontent)
+    await page.waitForSelector('img[src*="scontent"]', { timeout: 8000 });
+    const imageUrl = await page.$eval('img[src*="scontent"]', img => img.src);
 
-    const imageUrl = await page.$eval("header img", img => img.src);
+    console.log("Imagem capturada:", imageUrl);
 
     await browser.close();
-
     return res.json({ profilePic: imageUrl });
+
   } catch (err) {
-    console.error(err);
+    console.error("Erro ao buscar imagem:", err.message);
     return res.status(500).json({ error: "Profile picture not found" });
   }
 });
